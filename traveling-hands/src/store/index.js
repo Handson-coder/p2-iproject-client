@@ -13,7 +13,8 @@ export default new Vuex.Store({
         wishlists: [],
         travel: {},
         wishlist: {},
-        user: {}
+        user: {},
+        categories: []
     },
     mutations: {
         PUSH_MESSAGE(state, payload) {
@@ -40,6 +41,12 @@ export default new Vuex.Store({
         ADDING_WISHLIST_BY_DESTINATION_ID(state, data) {
             state.travel = data
         },
+        BRING_DATA_TO_FORM_EDIT(state, data) {
+            state.travel = data
+        },
+        FETCHING_ALL_CATEGORIES(state, data) {
+            state.categories = data
+        }
     },
     actions: {
         async handleLogin(context, payload) {
@@ -156,25 +163,6 @@ export default new Vuex.Store({
                 });
             }
         },
-        async fetchTravel(context, travelId) {
-            try {
-                const result = await travelAxios({
-                    method: "GET",
-                    url: `/destinations/${travelId}`,
-                })
-                Vue.$toast.open({
-                    message: `Loading Data... please wait`,
-                    type: "info",
-                })
-                router.push(`/destinations/${travelId}`)
-                context.commit("FETCHING_ONE_TRAVEL_BY_PK", result.data)
-            } catch (err) {
-                Vue.$toast.open({
-                    message: 'Something went wrong!',
-                    type: 'error',
-                });
-            }
-        },
         async fetchAllWishlists(context) {
             try {
                 const result = await travelAxios({
@@ -183,6 +171,10 @@ export default new Vuex.Store({
                     headers: {
                         access_token: localStorage.getItem("access_token")
                     }
+                })
+                Vue.$toast.open({
+                    message: `Loading Data... please wait`,
+                    type: "info",
                 })
                 context.commit("FETCHING_ALL_WISHLISTS", result.data)
             } catch (err) {
@@ -214,11 +206,11 @@ export default new Vuex.Store({
                 });
             }
         },
-        async addToWishlist(context, travelId) {
+        async addDestinationToWishlist(context, travelId) {
             try {
                 const result = await travelAxios({
                     method: "POST",
-                    url: `/wishlists/${travelId}`,
+                    url: `/destinations/${travelId}`,
                     headers: {
                         access_token: localStorage.getItem("access_token")
                     }
@@ -229,6 +221,136 @@ export default new Vuex.Store({
             } catch (err) {
                 Vue.$toast.open({
                     message: `${err.message}`,
+                    type: 'error',
+                });
+            }
+        },
+        async fetchTravel(context, travelId) {
+            try {
+                const result = await travelAxios({
+                    method: "GET",
+                    url: `/destinations/${travelId}`,
+                })
+                Vue.$toast.open({
+                    message: `Loading Data... please wait`,
+                    type: "info",
+                })
+                router.push(`/destinations/${travelId}`)
+                context.commit("FETCHING_ONE_TRAVEL_BY_PK", result.data)
+            } catch (err) {
+                Vue.$toast.open({
+                    message: 'Something went wrong!',
+                    type: 'error',
+                });
+            }
+        },
+        async formEdit(context, travelId) {
+            try {
+                const result = await travelAxios({
+                    method: "GET",
+                    url: `destinations/${travelId}`,
+                    headers: {
+                        access_token: localStorage.getItem("access_token")
+                    }
+                })
+                context.commit("BRING_DATA_TO_FORM_EDIT", result.data)
+                Vue.$toast.open({
+                    message: `Loading Data... please wait`,
+                    type: "info",
+                })
+                router.push(`/formEdit/${travelId}`)
+            } catch (err) {
+                Vue.$toast.open({
+                    message: 'Something went wrong!',
+                    type: 'error',
+                });
+            }
+        },
+        async clickEditButton(context, payload) {
+            Vue.$toast.open({
+                message: `Editing data... please wait`,
+                type: "info",
+            });
+            try {
+                await travelAxios({
+                    method: "PUT",
+                    url: `/destinations/${payload.id}`,
+                    headers: {
+                        access_token: localStorage.getItem("access_token")
+                    },
+                    data: payload.form
+                })
+                context.dispatch("findAllDestinations")
+                router.push('/')
+                Vue.$toast.success(`Destination has been updated!`);
+            } catch (err) {
+                Vue.$toast.open({
+                    message: `${err.message}`,
+                    type: 'error',
+                });
+            }
+        },
+        async clickCreateButton(context, payload) {
+            try {
+                await travelAxios({
+                    method: "POST",
+                    url: '/destinations',
+                    headers: {
+                        access_token: localStorage.getItem("access_token")
+                    },
+                    data: payload
+                })
+                Vue.$toast.open({
+                    message: `Creating data... please wait`,
+                    type: "info",
+                });
+                context.dispatch("findAllDestinations")
+                router.push('/')
+                Vue.$toast.success(`New Destination Added!`);
+            } catch (err) {
+                Vue.$toast.open({
+                    message: `${err.message}`,
+                    type: 'error',
+                });
+            }
+        },
+        async fetchCategories(context) {
+            try {
+                const result = await travelAxios({
+                    method: "GET",
+                    url: "/categories",
+                })
+                context.commit("FETCHING_ALL_CATEGORIES", result.data)
+                Vue.$toast.open({
+                    message: `Loading Form... please wait`,
+                    type: "info",
+                })
+            } catch (err) {
+                Vue.$toast.open({
+                    message: 'Something went wrong!',
+                    type: 'error',
+                });
+            }
+        },
+        async checkOutPackage(context, payload) {
+            try {
+                Vue.$toast.open({
+                    message: `Sending Email... please wait`,
+                    type: "info",
+                })
+                await travelAxios({
+                    method: "POST",
+                    url: '/wishlists/nodemailer',
+                    headers: {
+                        access_token: localStorage.getItem("access_token")
+                    },
+                    data: payload
+                })
+                context.dispatch("fetchAllWishlists")
+                Vue.$toast.success("Email Sent!, Please check your email inbox");
+            } catch (err) {
+                Vue.$toast.open({
+                    message: 'Something went wrong!',
                     type: 'error',
                 });
             }
